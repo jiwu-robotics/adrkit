@@ -165,6 +165,10 @@ Until `1.0.0`, minor releases may include breaking changes
   case-sensitive matcher and dependency values. The committed Action bundle was
   rebuilt with the same behavior
   ([#115](https://github.com/mbeacom/adrkit/issues/115)).
+### Changed
+
+- Updated the independently versioned `@adrkit/spec-kit` adapter to `0.2.0`
+  for Spec Kit `>=1.0.0,<1.1.0`, verified against `specify 1.0.2.dev0`.
 
 ## [0.12.0] - 2026-08-27
 

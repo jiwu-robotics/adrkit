@@ -23,22 +23,24 @@ Plus one hook: `after_plan` offers to run `/speckit.adrkit.check`. It is
 
 ## Requirements
 
-- Spec Kit `>=0.13.0,<1.1.0`. Compatibility is tested against 0.13.0, 0.14.4,
-  0.15.1, 0.16.5, 1.0.0, and 1.0.4–1.0.6.
+- Spec Kit `>=1.0.0,<1.1.0`. Compatibility is verified against the current
+  `specify 1.0.2.dev0` release line.
 - The `adr` CLI (`npm install -g @adrkit/cli`), a project-local installation,
   or `ADRKIT_CLI` pointing at its entry point.
 - An ADR corpus. Defaults to `docs/adr`.
 
 ## Install
 
-From the
-[Spec Kit community catalog](https://github.com/github/spec-kit/blob/main/extensions/catalog.community.json):
+For a published release, install from the
+[Spec Kit community catalog](https://github.com/github/spec-kit/blob/main/extensions/catalog.community.json).
+The catalog entry may target a different compatibility line than this worktree:
 
 ```sh
 specify extension add adrkit
 ```
 
-Or straight from a checkout:
+For this Spec Kit 1.0 compatibility line, install the adapter from the checkout
+being tested:
 
 ```sh
 specify extension add --dev path/to/packages/adapters/spec-kit
@@ -47,8 +49,9 @@ specify extension add --dev path/to/packages/adapters/spec-kit
 Then `/speckit.adrkit.context` is available in your agent, and `/speckit.plan`
 will offer the `after_plan` hook.
 
-The package is also published on npm as `@adrkit/spec-kit` for programmatic or
-pinned installs.
+The published npm package remains available as `@adrkit/spec-kit`; this
+worktree's Spec Kit 1.0 adapter is installed with `--dev` until its release
+artifact is published.
 
 ## Use it in the plan loop
 
@@ -94,12 +97,12 @@ network — a missing CLI is reported, never fetched.
 
 ## Compatibility and support
 
-The extension is tested against Spec Kit 0.13.0, 0.14.4, 0.15.1, 0.16.5, 1.0.0,
-and 1.0.4–1.0.6. Report
-compatibility issues in the
-[adrkit issue tracker](https://github.com/mbeacom/adrkit/issues). Maintainers can
-find the detailed verification record in
-[`docs/reference-verification-spec-kit-extension.md`](../../../docs/reference-verification-spec-kit-extension.md).
+The extension is verified against Spec Kit `1.0.2.dev0`, including install,
+command registration, and the optional `after_plan` hook. Report compatibility
+issues in the
+[adrkit issue tracker](https://github.com/mbeacom/adrkit/issues). The adapter
+keeps a bounded upper version limit; widening it requires another install and
+render verification.
 
 ## License
 
