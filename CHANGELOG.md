@@ -9,6 +9,27 @@ Until `1.0.0`, minor releases may include breaking changes
 
 ## [Unreleased]
 
+### Added
+
+- **The agent plugin offers the bootstrap decision record (`adrkit` 0.3.0).** A
+  repository with no ADR corpus, or one whose corpus never recorded why it keeps
+  decisions, is now offered the process decision (keep decisions in git) and the
+  tooling decision (enforce them with adrkit). It is an **offer, not a
+  candidate**: no source span proves a human ratified either choice, so it fails
+  backfill's evidence rule and is kept out of the candidates table and out of
+  every `backfillHandoff` — whose concrete `candidatePaths` it could never supply,
+  since the path it governs is the corpus directory. It routes to plain
+  `/adr-draft` instead. Adopting adrkit is never a supersession of the decision
+  to record decisions: `supersedes` is reserved for a prior *tooling* record,
+  a MADR corpus is migrated rather than superseded, and the governing process
+  record is detected through `adr check`'s `governing` bucket rather than by
+  hand-parsing frontmatter — reading `adr check`'s **exit code before its
+  `governing` bucket**, because an unmigrated MADR corpus returns an empty
+  bucket at exit `1` when nothing parses, and offering the process decision
+  there would duplicate a record the repository already has. Detection is
+  measured against synthetic corpora; host surfacing behavior is unverified
+  ([ADR-0038](docs/adr/0038-offer-the-bootstrap-decision-record-as-an-offer-rather-than-a-backfill-candidate.md)).
+
 ## [spec-kit-0.1.4] - 2026-09-13
 
 ### Changed

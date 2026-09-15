@@ -225,8 +225,11 @@ validation. Scope and limitations:
 That functional evidence covers the v0.1.0 context/check/draft/queue baseline.
 The v0.2.0 backfill skill and command are contract- and static-host-validated.
 A fresh Copilot synthetic-consumer run produced the expected covered/history/new
-classification and a complete handoff without changing the worktree. No
-persistent reference-repository or external run exists.
+classification and a complete handoff without changing the worktree. For the
+v0.3.0 bootstrap-record offer, detection is measured against synthetic corpora
+(missing, empty, source-only, process-record-present, and unmigrated MADR);
+host surfacing behavior is unverified. No persistent reference-repository or
+external run exists.
 
 Things that are load-bearing and easy to break — each measured against the real
 hosts rather than read off their docs, so a change that "looks more correct"
@@ -267,7 +270,20 @@ will usually be a regression:
   treats source text as untrusted data, stays inside the worktree, enforces
   explicit scan caps, and requires confirmation before running a CLI resolved
   inside an inherited repository.
-- `copilot plugin install` prints only a skill count. Version 0.2.0 should report
+- **The bootstrap record is an offer, not a candidate.** A repository with no
+  corpus is missing the process decision (keep decisions in git) and the tooling
+  decision (enforce them with adrkit). Nothing proves a human ratified either,
+  so it stays out of the candidates table and out of every `backfillHandoff` —
+  it governs the corpus directory, a glob, and could never supply concrete
+  `candidatePaths` — and routes to plain `/adr-draft`. Adopting adrkit is never
+  a supersession of the decision to record decisions; `supersedes` is reserved
+  for a prior *tooling* record, and a MADR corpus is migrated, not superseded.
+  Detection reads `adr check`'s exit code **before** its `governing` bucket: an
+  unmigrated MADR corpus returns an empty bucket at exit `1` because nothing
+  parses, so reading the bucket alone offers a duplicate of a process record the
+  repository already has
+  ([ADR-0038](./docs/adr/0038-offer-the-bootstrap-decision-record-as-an-offer-rather-than-a-backfill-candidate.md)).
+- `copilot plugin install` prints only a skill count. Version 0.3.0 should report
   two skills; that does not inventory the agent or commands — verify them in a
   fresh session.
 
