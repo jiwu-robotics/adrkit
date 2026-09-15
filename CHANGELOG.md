@@ -9,6 +9,64 @@ Until `1.0.0`, minor releases may include breaking changes
 
 ## [Unreleased]
 
+### Fixed
+
+- **The bootstrap offer reads every bucket, and its write path works
+  (`adrkit` 0.3.1).** Three defects shipped in 0.3.0, each found by executing the
+  CLI rather than reasoning about it, and each of which offered a repository a
+  decision record it did not need.
+
+  `adr check`'s `governing` bucket holds `accepted` records **alone**. Detection
+  read it by itself, so a process record that was `proposed` — which is exactly
+  what `/adr-draft` writes — or one that had been `rejected` came back as
+  absence. Measured: that record returns exit `0` with `governing: []` and
+  `activeProposals: ["0001"]`, or `history: ["0001"]` when rejected. The
+  consequence was circular: backfill offered the bootstrap record, `/adr-draft`
+  wrote it `proposed`, and the next run offered the same decision again. A
+  `rejected` record was re-proposed, which the decision-memory skill names as the
+  third failure it exists to prevent. Detection now reads all three buckets and
+  distinguishes *already proposed* (ratify it) from *settled against* (never
+  re-propose).
+
+  The exit-code guard read `adr check`'s exit code as though it certified the
+  corpus. It is scoped to the paths it was handed, so a malformed process record
+  beside a healthy one returns exit `0` with *empty* findings while corpus-wide
+  `adr lint` exits `1`. The corpus-wide gate is now `adr lint`.
+
+  The offer named `/adr-draft`, whose gate stopped on `adr lint` exit `2` —
+  precisely what a repository with no corpus returns — so the headline case could
+  not be written at all. `adr new` exits `0` there and creates the corpus, because
+  `createAdr` makes the directory itself. That gate is now narrowed to the absent-
+  corpus case; an unparseable corpus is still a hard stop.
+
+  A fourth defect surfaced only when the write path was exercised end to end for
+  the first time, in an ephemeral consumer repository: `adr new` scaffolds
+  `affects: []`, so the bootstrap record written through the offer's own
+  prescribed path binds nothing. A record with no matcher is invisible to
+  detection however many buckets are read — every bucket empty, and the next
+  audit offers the same decision again. ADR-0038 had listed precisely this under
+  *how we would know this was wrong*; it was the default behavior all along. The
+  offer now states that the record must carry an `affects` matcher covering the
+  corpus directory.
+
+  Detection guidance also now lives in `commands/adr-backfill.md`, not the skill
+  alone: `/adr-backfill` loads the command, so a procedure only the skill carried
+  was unreachable from the entry point people invoke. The safety-policy checker
+  enforces this against both surfaces, and the retained contradictory fixture
+  gained the matching negative cases
+  ([ADR-0038](docs/adr/0038-offer-the-bootstrap-decision-record-as-an-offer-rather-than-a-backfill-candidate.md)).
+
+### Changed
+
+- **ADR-0038 is ratified.** Accepted by `@mbeacom` on 2026-09-15, after the
+  corrections above and the first functional run of the write path. The decision
+  is unchanged from the original proposal; what was wrong was the mechanic
+  implementing it. Three action items remain open and are tracked rather than
+  closed by ratification: a host run confirming the offer is surfaced, `ADR_DIR`
+  resolution ignoring repository discovery, and mirroring the no-corpus clause
+  into `/adr-context` and `/adr-check`.
+
+
 ### Added
 
 - **The agent plugin offers the bootstrap decision record (`adrkit` 0.3.0).** A

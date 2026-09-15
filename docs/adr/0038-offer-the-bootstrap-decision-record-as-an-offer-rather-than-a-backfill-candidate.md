@@ -2,7 +2,7 @@
 schemaVersion: 0.1.0
 id: "0038"
 title: "Offer the bootstrap decision record as an offer rather than a backfill candidate"
-status: proposed
+status: accepted
 date: 2026-09-08
 deciders:
   - "@mbeacom"
@@ -30,6 +30,7 @@ affects:
     pattern: "docs/reference-verification-agent-plugin.md"
 provenance:
   authoredBy: agent-drafted
+  ratifiedBy: "@mbeacom"
 review:
   tier: auto
   tierReason: Guidance-only change to one adapter; sole decider.
@@ -37,6 +38,12 @@ reviewBy: 2027-09-08
 ---
 
 # ADR-0038: Offer the bootstrap decision record as an offer rather than a backfill candidate
+
+> **Status: accepted.** Agent-drafted and explicitly ratified by `@mbeacom` on
+> 2026-09-15, after the 0.3.1 corrections to the detection mechanic and the
+> first functional run of the write path. The decision is unchanged from the
+> original proposal; the mechanic that implements it was wrong three times over
+> and is recorded in Consequences. Action items 5, 7 and 8 remain open.
 
 ## Context
 
@@ -85,8 +92,10 @@ The edge is read off the corpus rather than assumed:
 
 | Corpus state | Offer | Edge |
 | --- | --- | --- |
-| No corpus, or records exist but none govern the corpus directory | Process and tooling decision | `relatesTo` between them when split |
-| A process record governs the corpus directory | Tooling decision only | `relatesTo` that record |
+| No corpus, or no record in any bucket covers the corpus directory | Process and tooling decisions | `relatesTo` between them when split |
+| An `accepted` process record governs the corpus directory | Tooling decision only | `relatesTo` that record |
+| A process record covering it is already `draft`/`proposed` | Nothing; name ratification as the next step | none |
+| A process record covering it is `rejected`/`superseded`/`deprecated` | Nothing; report the record | none — never re-propose |
 | A prior tooling record governs it | Tooling decision | `supersedes` that prior tooling record |
 
 Adopting adrkit is never a supersession of the decision to record decisions.
@@ -95,17 +104,40 @@ Adopting adrkit is never a supersession of the decision to record decisions.
 `adr migrate --from madr`, not superseded.
 
 Detection runs through the CLI — `adr check` over one record already inside the
-corpus, reading the `governing` bucket — because this skill forbids hand-parsing
-frontmatter, and an invalid record drops out of the parsed corpus, so a grep for
-a meta tag can be confidently wrong.
+corpus — because this skill forbids hand-parsing frontmatter, and an invalid
+record drops out of the parsed corpus, so a grep for a meta tag can be
+confidently wrong.
 
-The exit code is read before the bucket, and that ordering is load-bearing rather
-than stylistic. Measured against a synthetic unmigrated MADR corpus, `adr check`
-returns an empty `governing` bucket *and* `frontmatter-fence` errors at exit `1`,
+**All three buckets are read, not `governing` alone.** `governing` holds
+`accepted` records only; `activeProposals` holds `draft` and `proposed`, and
+`history` holds `rejected`, `superseded`, and `deprecated`. Reading `governing`
+by itself reports the other two as absence, and two of those misreadings are
+reachable through ordinary use:
+
+- `/adr-draft` writes a new record as `proposed`, so the record this very offer
+  produces lands in `activeProposals`. Backfill run again before a human
+  ratifies it would offer the same decision a second time — the tool
+  re-offering its own output.
+- A repository that explicitly `rejected` keeping decision records would have
+  that decision re-proposed, which is the third failure the decision-memory
+  skill exists to prevent.
+
+The exit code is read before the buckets, and that ordering is load-bearing
+rather than stylistic. Measured against a synthetic unmigrated MADR corpus,
+`adr check` returns empty buckets *and* `frontmatter-fence` errors at exit `1`,
 because no record parses — including the one that is the process decision. The
-empty bucket is a parse failure wearing the costume of an absence. Only on exit
-`0` does it mean no process record exists; on exit `1` the offer is unverified
-until the corpus is migrated or repaired.
+empty result is a parse failure wearing the costume of an absence.
+
+**The corpus-wide signal is `adr lint`, not `adr check`.** `adr check`'s exit
+code is scoped to the paths it was handed (ADR-0022), so a malformed record
+*elsewhere* in the corpus leaves it at exit `0` with an empty result while the
+process record sits unparsed and undetected. Corpus-wide `adr lint` must reach
+exit `0` before an empty result is read as absence.
+
+The offer category is fenced: the bootstrap record is the **only** recognized
+offer. Any future non-evidence-backed entry in the report requires its own
+decision record, so that "Existing corpus state" does not become a side channel
+around the candidate admission rule.
 
 ## Options considered
 
@@ -169,9 +201,42 @@ the guidance offers a decision to make rather than a template to accept.
   already has a process record it could not parse. The third was found during
   implementation against a MADR fixture and is now defended by the exit-code
   precondition; the first two remain live risks.
+- **Amended 2026-09-15 (0.3.1), after review of the 0.3.0 implementation.** Three
+  further ways this was wrong were found by executing the CLI rather than
+  reasoning about it, and all three shipped in 0.3.0:
+  - Reading `governing` alone treated a `proposed` or `rejected` process record
+    as absent. Executed: a record with `affects: docs/adr/**` at `status:
+    proposed` returns exit `0`, `governing: []`, `activeProposals: ["0001"]`; at
+    `status: rejected` it returns `history: ["0001"]`. Because `/adr-draft`
+    writes `proposed`, the offer re-offered its own output.
+  - The exit-code guard read `adr check`'s exit code, which is path-scoped, as
+    though it certified the corpus. Executed: a malformed process record beside
+    a healthy record returns exit `0` with *empty* findings when the healthy
+    record is probed, while corpus-wide `adr lint` exits `1`.
+  - The offer named `/adr-draft`, whose gate stopped on `adr lint` exit `2` —
+    exactly what a repository with no corpus returns — so the headline case
+    could not be written at all. Executed: `adr lint` exits `2` there while
+    `adr new` exits `0` and creates the corpus.
+  - A fourth, found by the first functional run of the write path rather than by
+    review: `adr new` scaffolds `affects: []`, so the bootstrap record written
+    through this offer's own prescribed path binds nothing and is invisible to
+    detection — every bucket empty, and the next audit offers it again. This is
+    the failure named directly above under *how we would know this was wrong*,
+    and it was the default behavior all along. The offer now states that the
+    record must carry an `affects` matcher covering the corpus directory.
 - Revisit if: a CLI-level affordance is requested by someone not using the
   plugin, or a functional run shows hosts do not surface the offer on an empty
   corpus.
+
+## Ratification
+
+Ratified 2026-09-15 by @mbeacom, after the 0.3.1 corrections and the first
+functional run of the write path. The decision itself — offer the bootstrap
+record, never mine it — is unchanged from the original proposal; what changed
+before ratification was the detection mechanic, the reachability of the
+guidance from the command, and the requirement that the record bind the corpus
+directory. Action items 5, 7 and 8 remain open and are tracked, not closed by
+ratification.
 
 ## Action items
 
@@ -184,4 +249,16 @@ the guidance offers a decision to make rather than a template to accept.
    `docs/reference-verification-agent-plugin.md`.
 5. [ ] Exercise the offer in a functional host run against an empty-corpus
    consumer. Detection is measured; whether a host surfaces the offer at all is
-   not.
+   not, and neither is whether the write path it names completes end to end.
+6. [x] **0.3.1** — read all three buckets, gate on corpus-wide `adr lint`, port
+   the detection procedure into `commands/adr-backfill.md` so it is reachable
+   from the entry point, and narrow `/adr-draft`'s exit-`2` gate so an absent
+   corpus directory proceeds to `adr new`. Re-measured against `proposed`,
+   `rejected`, and mixed-validity corpora.
+7. [ ] Resolve whether `ADR_DIR` resolution should consult step-1 discovery. A
+   pre-adrkit MADR corpus at a non-default path (`docs/decisions/` is MADR's own
+   convention) resolves to a nonexistent `docs/adr`, exits `2`, and is read as
+   "no corpus" rather than routed to migration. Narrowed in guidance for 0.3.1;
+   not yet fixed in resolution order.
+8. [ ] Mirror the no-corpus clause into `/adr-context` and `/adr-check`, or
+   record why decision-memory's sibling commands are deliberately excluded.
