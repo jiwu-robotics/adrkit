@@ -10,11 +10,11 @@ const repoRoot = dirname(dirname(dirname(packageRoot)));
  *
  * `specify extension add --dev <path>` copies the extension directory verbatim
  * into the consuming project's `.specify/extensions/<id>/`. It does not skip
- * `node_modules`. Verified against v0.15.1: a single declared dependency is
- * enough for Bun's isolated linker to create `node_modules/` here, and the
- * install then either deposits it in someone else's repository or — when it
- * contains a workspace symlink, which it does — aborts with a `shutil.Error`
- * partway through, leaving a half-installed extension behind.
+ * `node_modules`. Verified against specify 1.0.2.dev0: a single declared
+ * dependency is enough for Bun's isolated linker to create `node_modules/` here,
+ * and the install then either deposits it in someone else's repository or —
+ * when it contains a workspace symlink, which it does — aborts with a
+ * `shutil.Error` partway through, leaving a half-installed extension behind.
  */
 describe('packaging', () => {
   const packageJson = JSON.parse(
@@ -116,9 +116,8 @@ describe('packaging', () => {
 
   test('excludes development-only files from what a consumer receives', () => {
     // `.extensionignore` is upstream's gitignore-semantics exclusion list,
-    // supported across the whole pinned range (present in 0.13.0, 0.15.1, and 1.0.4–1.0.6).
-    // Without it the install deposits our test suite and tsconfig in someone
-    // else's repository.
+    // supported by the current Spec Kit 1.0 extension loader. Without it the
+    // install deposits our test suite and tsconfig in someone else's repository.
     const ignoreFile = join(packageRoot, '.extensionignore');
     expect(existsSync(ignoreFile)).toBe(true);
 

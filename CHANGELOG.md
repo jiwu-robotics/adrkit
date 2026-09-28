@@ -211,6 +211,9 @@ Until `1.0.0`, minor releases may include breaking changes
 
 ### Changed
 
+- Updated the independently versioned `@adrkit/spec-kit` adapter to `0.2.0`
+  for Spec Kit `>=1.0.0,<1.1.0`, verified against `specify 1.0.2.dev0`.
+
 - **ADR-0038 is ratified.** Accepted by `@mbeacom` on 2026-09-15, after the
   corrections above and the first functional run of the write path. The decision
   is unchanged from the original proposal; what was wrong was the mechanic

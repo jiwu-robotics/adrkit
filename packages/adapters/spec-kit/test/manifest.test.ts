@@ -4,10 +4,9 @@ import { join } from 'node:path';
 import { loadManifest, packageRoot } from './manifest-fixture.ts';
 
 /**
- * The upstream validation rules from Spec Kit's EXTENSION-API-REFERENCE at the
- * commit spike 008 verified against (v0.13.0, 9a30db48). Upstream rejects a
- * manifest that breaks these at install time; failing here instead means the
- * break is found in CI rather than in someone else's terminal.
+ * The current Spec Kit 1.0.2.dev0 loader rejects a manifest that breaks these
+ * rules at install time; failing here instead means the break is found in CI
+ * rather than in a consumer's terminal.
  */
 const ID_PATTERN = /^[a-z0-9-]+$/;
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
@@ -62,15 +61,10 @@ describe('extension manifest', () => {
     expect(manifest.extension.license).toBe('Apache-2.0');
   });
 
-  test('speckit_version is a bounded specifier, not a bare version', () => {
-    // Bounded on both ends on purpose, and the upper bound is a verification
-    // boundary rather than a guess: installed and rendered against 0.13.0
-    // (spike 008), 0.14.4, 0.15.1, 0.16.5, 1.0.0, and 1.0.4–1.0.6. The upstream API
-    // reference changed only additively across that span and the loader never
-    // removed behavior this extension uses. Raising it means re-verifying
-    // against the new minor first — breaking loudly on an unverified one is
-    // ADR-0007's intended adapter behavior.
-    expect(manifest.requires.speckit_version).toBe('>=0.13.0,<1.1.0');
+  test('targets the verified current Spec Kit 1.0 line', () => {
+    // The upper bound is a verification boundary, not a guess. Widening it
+    // requires an install/render check against the next Spec Kit minor.
+    expect(manifest.requires.speckit_version).toBe('>=1.0.0,<1.1.0');
   });
 
   test('declares the adr CLI as a required tool', () => {
